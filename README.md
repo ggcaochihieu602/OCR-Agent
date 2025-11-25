@@ -14,3 +14,16 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+
+## How to run the project. 
+
+1. First, you need to have flutter installed in your computer
+2. clone this repository:
+  ``` git clone https://github.com/24neurons/OCR-Agent.git```
+3. Move to the repository:
+   ```cd OCR-Agent```
+4. Install the dependencies
+   ```flutter pub get```
+5. Run the project 
+   
