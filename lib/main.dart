@@ -1,58 +1,53 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'dart:io';
-
 import 'package:image_picker/image_picker.dart';
+import 'dart:async';
+import 'package:camera/camera.dart';
 
-void main() {
+// 1. GLOBAL CAMERA LIST INITIALIZATION
+// This list holds the available cameras on the device.
+late List<CameraDescription> _cameras;
+
+Future<void> main() async {
+  // Ensure that plugin services are initialized before using them.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Obtain a list of the available cameras on the device.
+  try {
+    _cameras = await availableCameras();
+  } on CameraException catch (e) {
+    // Handle error if no cameras are found or permissions are denied
+    print('Error accessing cameras: $e');
+    _cameras = []; // Set to empty if error occurs
+  }
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'OCR Scanner',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      // Pass the list of cameras to the home screen
+      home: MyHomePage(title: 'OCR Scanner', cameras: _cameras),
     );
   }
 }
 
+// 2. MAIN OCR VIEW
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+  const MyHomePage({super.key, required this.title, required this.cameras});
 
   final String title;
+  final List<CameraDescription> cameras;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -60,86 +55,231 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   File? _imageFile;
-  String _extractedText = '';
-  Future<void> _pickerImage() async {
+  String _extractedText = 'Select an image or take a picture to begin OCR.';
+  bool _isProcessing = false;
+
+  // --- Image Picking and Processing Logic ---
+
+  Future<void> _pickImageFromGallery() async {
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
     );
     if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-      _processImage();
+      await _processImage(File(pickedFile.path));
     }
   }
 
-  int _counter = 0;
+  Future<void> _takePicture() async {
+    // Check if any cameras are available
+    if (widget.cameras.isEmpty) {
+      setState(() {
+        _extractedText = 'Error: No cameras available on this device.';
+      });
+      return;
+    }
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+    // Navigate to the CameraScreen to capture the image
+    final String? imagePath = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (context) => CameraScreen(camera: widget.cameras.first),
+      ),
+    );
+
+    // If an image path is returned, process it
+    if (imagePath != null) {
+      await _processImage(File(imagePath));
+    }
   }
 
-  Future<void> _processImage() async {
-    final inputImage = InputImage.fromFilePath(_imageFile!.path);
+  Future<void> _processImage(File image) async {
+    setState(() {
+      _imageFile = image;
+      _extractedText = 'Processing image...';
+      _isProcessing = true;
+    });
+
+    final inputImage = InputImage.fromFilePath(image.path);
     final textRecognizer = TextRecognizer();
     final RecognizedText recognizedText = await textRecognizer.processImage(
       inputImage,
     );
-    // String extractedText = recognizedText.text;
-    // print(extractedText);
-    // / Update the state variable with the extracted text
+    // Dispose the recognizer to free up resources
+    textRecognizer.close();
+
     setState(() {
       _extractedText = recognizedText.text.isEmpty
           ? 'Could not recognize any text.'
           : recognizedText.text;
+      _isProcessing = false;
     });
   }
+
+  // --- UI Build ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-
         title: Text(widget.title),
       ),
       body: Center(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _imageFile == null
-                  ? Text('No image selected.')
-                  : Image.file(_imageFile!),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _pickerImage,
-                child: Text('Select Image'),
+              // Image Display
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                height: 200,
+                child: _imageFile == null
+                    ? Center(
+                        child: Text(
+                          'No image selected.',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(_imageFile!, fit: BoxFit.cover),
+                      ),
               ),
-              // 3. Display the extracted text
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
+
+              // Button 1: Gallery
+              ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _pickImageFromGallery,
+                icon: const Icon(Icons.photo_library),
+                label: const Text('Select from Gallery'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                ),
+              ),
+              const SizedBox(height: 15),
+
+              // Button 2: Camera
+              ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _takePicture,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Take Picture'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              // Extracted Text Display
               const Text(
                 'Extracted Text:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              SelectableText(_extractedText, style: TextStyle(fontSize: 16)),
+
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                constraints: const BoxConstraints(minHeight: 100),
+                child: _isProcessing
+                    ? const Center(child: CircularProgressIndicator())
+                    : SelectableText(
+                        _extractedText,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+              ),
             ],
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+// 3. SEPARATE CAMERA PREVIEW VIEW
+class CameraScreen extends StatefulWidget {
+  final CameraDescription camera;
+
+  const CameraScreen({super.key, required this.camera});
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the controller.
+    _controller = CameraController(widget.camera, ResolutionPreset.medium);
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _captureImage() async {
+    try {
+      // Ensure the camera is initialized.
+      await _initializeControllerFuture;
+
+      // Attempt to take a picture.
+      final image = await _controller.takePicture();
+
+      if (!context.mounted) return;
+
+      // Pop back to MyHomePage, passing the image path back as the result.
+      Navigator.pop(context, image.path);
+    } catch (e) {
+      print('Error taking picture: $e');
+      if (context.mounted) {
+        // Show an error message before popping
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to take picture.')),
+        );
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Take a Picture')),
+      // Use FutureBuilder to display the camera preview once initialized.
+      body: FutureBuilder<void>(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            // If the Future is complete, display the preview.
+            return CameraPreview(_controller);
+          } else {
+            // Otherwise, display a loading indicator.
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _captureImage,
+        child: const Icon(Icons.camera),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }
