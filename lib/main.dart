@@ -134,10 +134,11 @@ class _MyHomePageState extends State<MyHomePage> {
       sourceLanguage: sourceLanguage,
       targetLanguage: targetLanguage,
     );
-    final String response = await onDeviceTranslator.translateText(
-      _extractedText,
-    );
-    print(response);
+    _translatedText = await onDeviceTranslator.translateText(_extractedText);
+    setState(() {
+      _isTranslating = false;
+    });
+    print(_translatedText);
   }
 
   // --- UI Build ---
@@ -238,6 +239,26 @@ class _MyHomePageState extends State<MyHomePage> {
                     ? const Center(child: CircularProgressIndicator())
                     : SelectableText(
                         _extractedText,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+              ),
+              const Text(
+                'Translated Text:',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                constraints: const BoxConstraints(minHeight: 100),
+                child: _isTranslating
+                    ? const Center(child: CircularProgressIndicator())
+                    : SelectableText(
+                        _translatedText,
                         style: const TextStyle(fontSize: 16),
                       ),
               ),
