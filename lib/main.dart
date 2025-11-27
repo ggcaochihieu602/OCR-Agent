@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
+import 'package:translator_plus/translator_plus.dart';
 
 // 1. GLOBAL CAMERA LIST INITIALIZATION
 // This list holds the available cameras on the device.
@@ -24,6 +25,24 @@ Future<void> main() async {
   }
 
   runApp(const MyApp());
+
+  final translator = GoogleTranslator();
+
+  final input = "Xin chao toi den tu Viet Nam";
+
+  // The rest of the main function's example code remains the same...
+  translator.translate(input, from: 'vi', to: 'en').then(print);
+  // prints Hello. Are you okay?
+
+  var translation = await translator.translate(
+    "Xin chào, tôi đến từ Việt Nam",
+    to: 'en',
+  );
+  print(translation);
+  // prints Hello, I come from Vietnam
+
+  print(await "example".translate(to: 'pt'));
+  // prints exemplo
 }
 
 class MyApp extends StatelessWidget {
@@ -60,6 +79,21 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isProcessing = false;
   String _translatedText = "Translation";
   bool _isTranslating = false;
+  final translator = GoogleTranslator();
+
+  // --- NEW: Language Selection Variables ---
+  // A map of friendly names to language codes
+  final Map<String, String> _languages = {
+    'Vietnamese': 'vi',
+    'English': 'en',
+    'Spanish': 'es',
+    'French': 'fr',
+    'German': 'de',
+    'Japanese': 'ja',
+  };
+
+  // State to hold the currently selected language code (defaulting to Vietnamese)
+  String _selectedTargetLanguageCode = 'vi';
 
   // --- Image Picking and Processing Logic ---
 
@@ -99,6 +133,8 @@ class _MyHomePageState extends State<MyHomePage> {
       _imageFile = image;
       _extractedText = 'Processing image...';
       _isProcessing = true;
+      // Reset translation when a new image is processed
+      _translatedText = "Translation";
     });
 
     final inputImage = InputImage.fromFilePath(image.path);
@@ -114,31 +150,47 @@ class _MyHomePageState extends State<MyHomePage> {
           ? 'Could not recognize any text.'
           : recognizedText.text;
       _isProcessing = false;
+      _extractedText = recognizedText.text;
+      _extractedText
     });
   }
 
-  Future<void> _translateText(String _extractedText) async {
-    // Placeholder for future translation functionality
+  // --- MODIFIED: Translation Logic to use selected target language ---
+  Future<void> _translateText(String extractedText) async {
+    // Only translate if there's actual text and not the placeholder or error message
+    if (extractedText.isEmpty ||
+        extractedText.contains('Select an image') ||
+        extractedText.contains('Could not recognize')) {
+      setState(() {
+        _translatedText = "No valid text to translate.";
+      });
+      return;
+    }
+
     setState(() {
-      _translatedText = "Translated Text";
+      _translatedText =
+          "Translating to ${_languages.entries.firstWhere((e) => e.value == _selectedTargetLanguageCode).key}...";
       _isTranslating = true;
     });
 
-    // var _sourceLanguage = TranslateLanguage.english;
-    // var _targetLanguage = TranslateLanguage.spanish;
-    final TranslateLanguage sourceLanguage = TranslateLanguage.english;
+    try {
+      // Use the stored _selectedTargetLanguageCode for translation
+      var google_translation = await translator.translate(
+        extractedText,
+        to: _selectedTargetLanguageCode,
+      );
 
-    final TranslateLanguage targetLanguage = TranslateLanguage.spanish;
-
-    final onDeviceTranslator = OnDeviceTranslator(
-      sourceLanguage: sourceLanguage,
-      targetLanguage: targetLanguage,
-    );
-    _translatedText = await onDeviceTranslator.translateText(_extractedText);
-    setState(() {
-      _isTranslating = false;
-    });
-    print(_translatedText);
+      setState(() {
+        _translatedText = google_translation.text;
+        _isTranslating = false;
+      });
+    } catch (e) {
+      print('Translation error: $e');
+      setState(() {
+        _translatedText = "Error during translation.";
+        _isTranslating = false;
+      });
+    }
   }
 
   // --- UI Build ---
@@ -157,7 +209,7 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              // Image Display
+              // Image Display (Unchanged)
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
@@ -178,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const SizedBox(height: 30),
 
-              // Button 1: Gallery
+              // Button 1: Gallery (Unchanged)
               ElevatedButton.icon(
                 onPressed: _isProcessing ? null : _pickImageFromGallery,
                 icon: const Icon(Icons.photo_library),
@@ -189,7 +241,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const SizedBox(height: 15),
 
-              // Button 2: Camera
+              // Button 2: Camera (Unchanged)
               ElevatedButton.icon(
                 onPressed: _isProcessing ? null : _takePicture,
                 icon: const Icon(Icons.camera_alt),
@@ -201,26 +253,95 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
 
-              // Button 3: Translate (Placeholder)
               const SizedBox(height: 15),
-              ElevatedButton.icon(
-                onPressed: _isProcessing
-                    ? null
-                    : () {
-                        _translateText(_extractedText);
-                      },
-                icon: const Icon(Icons.translate),
-                label: const Text('Translate Text'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
+
+              // --- NEW: Language Selector and Translate Button in a Row ---
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: _selectedTargetLanguageCode,
+                          icon: const Icon(Icons.arrow_drop_down),
+                          elevation: 16,
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedTargetLanguageCode = newValue;
+                                // Reset translated text when language changes
+                                _translatedText = "Translation target changed.";
+                              });
+                            }
+                          },
+                          items: _languages.entries
+                              .map<DropdownMenuItem<String>>((
+                                MapEntry<String, String> entry,
+                              ) {
+                                return DropdownMenuItem<String>(
+                                  value: entry.value,
+                                  child: Text(
+                                    'Translate to: ${entry.key}',
+                                    style: const TextStyle(color: Colors.black),
+                                  ),
+                                );
+                              })
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Button 3: Translate
+                  ElevatedButton.icon(
+                    onPressed: _isProcessing || _isTranslating
+                        ? null
+                        : () {
+                            _translateText(_extractedText);
+                          },
+                    icon: _isTranslating
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Icon(Icons.translate),
+                    label: Text(
+                      _isTranslating ? 'Translating...' : 'Translate',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 15,
+                        horizontal: 15,
+                      ),
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ),
 
+              // --- END NEW: Language Selector and Translate Button in a Row ---
               const SizedBox(height: 40),
 
-              // Extracted Text Display
+              // Extracted Text Display (Unchanged)
               const Text(
                 'Extracted Text:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -242,6 +363,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         style: const TextStyle(fontSize: 16),
                       ),
               ),
+
+              // Translated Text Display (Unchanged)
+              const SizedBox(height: 20),
               const Text(
                 'Translated Text:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -270,7 +394,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-// 3. SEPARATE CAMERA PREVIEW VIEW
+// 3. SEPARATE CAMERA PREVIEW VIEW (Unchanged)
 class CameraScreen extends StatefulWidget {
   final CameraDescription camera;
 
