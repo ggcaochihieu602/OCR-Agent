@@ -7,6 +7,9 @@ import 'package:camera/camera.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:translator_plus/translator_plus.dart';
 
+// IMPORT THÊM CHAT SCREEN
+import 'chat_screen.dart';
+
 // 1. GLOBAL CAMERA LIST INITIALIZATION
 // This list holds the available cameras on the device.
 late List<CameraDescription> _cameras;
@@ -151,7 +154,6 @@ class _MyHomePageState extends State<MyHomePage> {
           : recognizedText.text;
       _isProcessing = false;
       _extractedText = recognizedText.text;
-      _extractedText
     });
   }
 
@@ -287,18 +289,16 @@ class _MyHomePageState extends State<MyHomePage> {
                             }
                           },
                           items: _languages.entries
-                              .map<DropdownMenuItem<String>>((
-                                MapEntry<String, String> entry,
-                              ) {
-                                return DropdownMenuItem<String>(
-                                  value: entry.value,
-                                  child: Text(
-                                    'Translate to: ${entry.key}',
-                                    style: const TextStyle(color: Colors.black),
-                                  ),
-                                );
-                              })
-                              .toList(),
+                              .map<DropdownMenuItem<String>>(
+                                  (MapEntry<String, String> entry) {
+                            return DropdownMenuItem<String>(
+                              value: entry.value,
+                              child: Text(
+                                'Translate to: ${entry.key}',
+                                style: const TextStyle(color: Colors.black),
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ),
@@ -317,9 +317,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Icon(Icons.translate),
@@ -385,6 +384,26 @@ class _MyHomePageState extends State<MyHomePage> {
                         _translatedText,
                         style: const TextStyle(fontSize: 16),
                       ),
+              ),
+
+              // ===== NÚT MỚI MỞ CHATBOT =====
+              const SizedBox(height: 30),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ChatScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.smart_toy),
+                label: const Text('Chat với AI'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ],
           ),
