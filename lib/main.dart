@@ -13,6 +13,11 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 
+// === NEW DEPENDENCIES FOR WEBSITE TRANSLATION ===
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' show parse;
+// ===============================================
+
 // Import the service used for ChatGPT
 import 'services/chatgpt_service.dart';
 
@@ -136,7 +141,7 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen>
           MyHomePage(title: 'OCR Scanner', cameras: widget.cameras),
           // 3. Documents Tab (Now functional with PDF extraction)
           const DocumentsTabContent(),
-          // 4. Websites Tab (Placeholder)
+          // 4. Websites Tab (Functional)
           const WebsitesTabContent(),
         ],
       ),
@@ -390,8 +395,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   bool _isProcessing = false;
   bool _isTranslating = false;
   final translator = GoogleTranslator();
-  final ChatGPTService _chatGPTService =
-      ChatGPTService(); // NEW: For summarization
+  final ChatGPTService _chatGPTService = ChatGPTService();
 
   // Language map
   final Map<String, String> _languages = {
@@ -433,7 +437,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf'],
+      allowedExtensions: ['pdf'], // Focus only on PDF
       allowMultiple: false,
     );
 
@@ -465,6 +469,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   Future<void> _extractTextFromPdf(File pdfFile) async {
     try {
       final List<int> bytes = await pdfFile.readAsBytes();
+      // Use the prefixed PdfDocument here
       final syncfusion.PdfDocument document = syncfusion.PdfDocument(
         inputBytes: bytes,
       );
@@ -747,6 +752,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                         if (newValue != null) {
                           setState(() {
                             _selectedTargetLanguageCode = newValue;
+                            // Re-run translation if text is already extracted
                             if (_extractedText.isNotEmpty &&
                                 !aiActionsDisabled) {
                               _translateExtractedText(_extractedText);
@@ -859,46 +865,211 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   }
 }
 
-class WebsitesTabContent extends StatelessWidget {
+// =========================================================================
+// WebsitesTabContent (FUNCTIONAL)
+// =========================================================================
+
+class WebsitesTabContent extends StatefulWidget {
   const WebsitesTabContent({super.key});
+
+  @override
+  State<WebsitesTabContent> createState() => _WebsitesTabContentState();
+}
+
+class _WebsitesTabContentState extends State<WebsitesTabContent> {
+  final TextEditingController _urlController = TextEditingController();
+  String _translatedContent = 'Translated website content will appear here.';
+  bool _isTranslating = false;
+
+  final translator = GoogleTranslator();
+
+  final Map<String, String> _languages = {
+    'Vietnamese': 'vi',
+    'English': 'en',
+    'Spanish': 'es',
+    'French': 'fr',
+    'German': 'de',
+  };
+
+  String _selectedSourceLanguageCode =
+      'auto'; // Assuming the source is detected
+  String _selectedTargetLanguageCode = 'vi'; // Default target
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _translateWebsite() async {
+    String url = _urlController.text.trim();
+    if (url.isEmpty) {
+      setState(() => _translatedContent = "Please enter a valid URL.");
+      return;
+    }
+
+    // Ensure URL has a scheme (http/https)
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+      _urlController.text = url; // Update controller text
+    }
+
+    setState(() {
+      _isTranslating = true;
+      _translatedContent = 'Fetching and translating website content...';
+    });
+
+    try {
+      // 1. Fetch HTML Content
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load page: ${response.statusCode}');
+      }
+
+      // 2. Parse and Extract Text
+      final document = parse(response.body);
+      final rawText = document.body?.text ?? '';
+
+      // Basic cleaning: remove excessive whitespace and line breaks
+      final cleanedText = rawText.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+
+      if (cleanedText.isEmpty) {
+        setState(
+          () => _translatedContent = 'No readable text found on this webpage.',
+        );
+        _isTranslating = false;
+        return;
+      }
+
+      // 3. Translate the Extracted Text
+      final translation = await translator.translate(
+        cleanedText,
+        from: _selectedSourceLanguageCode, // Use 'auto' or determined source
+        to: _selectedTargetLanguageCode,
+      );
+
+      setState(() {
+        _translatedContent = translation.text;
+        _isTranslating = false;
+      });
+    } catch (e) {
+      print('Website Translation Error: $e');
+      setState(() {
+        _translatedContent =
+            'Error: Could not access or translate the site. Details: $e';
+        _isTranslating = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.language, size: 80, color: Colors.blueGrey),
-          const SizedBox(height: 20),
-          const Text(
-            'Translate an entire webpage.',
-            style: TextStyle(fontSize: 18),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
+          // URL Input Field
           TextField(
+            controller: _urlController,
             decoration: InputDecoration(
-              hintText: 'Enter URL',
+              hintText: 'Enter Website URL (e.g., example.com)',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               suffixIcon: IconButton(
-                icon: const Icon(Icons.translate),
-                onPressed: () {
-                  // Implement website translation logic
-                },
+                icon: const Icon(Icons.language),
+                onPressed: _isTranslating ? null : _translateWebsite,
               ),
             ),
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.go,
+            onSubmitted: _isTranslating ? null : (_) => _translateWebsite(),
+          ),
+          const SizedBox(height: 15),
+
+          // Language Selector and Translate Button
+          Row(
+            children: [
+              // Target Language Dropdown
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedTargetLanguageCode,
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedTargetLanguageCode = newValue;
+                          });
+                        }
+                      },
+                      items: _languages.entries
+                          .map(
+                            (entry) => DropdownMenuItem<String>(
+                              value: entry.value,
+                              child: Text('Translate to: ${entry.key}'),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // Translate Button
+              ElevatedButton.icon(
+                onPressed: _isTranslating ? null : _translateWebsite,
+                icon: _isTranslating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.translate),
+                label: const Text('Translate'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 10,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
-          DropdownButton<String>(
-            value: 'en', // Default value
-            items: const [
-              DropdownMenuItem(value: 'en', child: Text('English')),
-              DropdownMenuItem(value: 'vi', child: Text('Vietnamese')),
-            ],
-            onChanged: (value) {},
+
+          // Translated Content Display
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  _translatedContent,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -927,8 +1098,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String _translatedText = "Translation";
   bool _isTranslating = false;
   final translator = GoogleTranslator();
-  final ChatGPTService _chatGPTService =
-      ChatGPTService(); // NEW: For summarization
+  final ChatGPTService _chatGPTService = ChatGPTService();
 
   // --- Language Selection Variables ---
   final Map<String, String> _languages = {
@@ -1321,9 +1491,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
               ),
 
-              const SizedBox(height: 20),
-
               // Translated Text Display
+              const SizedBox(height: 20),
               const Text(
                 'Translated Text:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
