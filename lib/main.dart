@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -76,22 +75,8 @@ class MainTranslatorScreen extends StatefulWidget {
   State<MainTranslatorScreen> createState() => _MainTranslatorScreenState();
 }
 
-class _MainTranslatorScreenState extends State<MainTranslatorScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final List<String> _tabs = ['Text', 'Images', 'Documents', 'Websites'];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -100,35 +85,9 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen>
         title: const Text('Google Translate Clone'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          tabs: _tabs.map((tabText) {
-            IconData icon;
-            switch (tabText) {
-              case 'Text':
-                icon = Icons.text_fields;
-                break;
-              case 'Images':
-                icon = Icons.image;
-                break;
-              case 'Documents':
-                icon = Icons.description;
-                break;
-              case 'Websites':
-                icon = Icons.language;
-                break;
-              default:
-                icon = Icons.error;
-            }
-            return Tab(icon: Icon(icon), text: tabText);
-          }).toList(),
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: IndexedStack(
+        index: _selectedIndex,
         children: [
           // 1. Text Tab (Functional)
           const TextTabContent(),
@@ -138,6 +97,32 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen>
           const DocumentsTabContent(),
           // 4. Websites Tab (Placeholder)
           const WebsitesTabContent(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.text_fields),
+            label: 'Text',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.image),
+            label: 'Images',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.description),
+            label: 'Documents',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.language),
+            label: 'Websites',
+          ),
         ],
       ),
     );
