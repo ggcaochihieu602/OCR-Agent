@@ -206,96 +206,200 @@ class _TextTabContentState extends State<TextTabContent> {
           .key;
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          // Language Selectors (Top Row)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Source Language Dropdown
-              DropdownButton<String>(
-                value: _sourceLanguageCode,
-                items: _languages.entries.map((entry) {
-                  return DropdownMenuItem<String>(
-                    value: entry.value,
-                    child: Text(entry.key),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _sourceLanguageCode = newValue!;
-                  });
-                },
-              ),
-
-              const Icon(Icons.arrow_forward_ios),
-
-              // Target Language Dropdown (English is default target)
-              DropdownButton<String>(
-                value: _targetLanguageCode,
-                items: _languages.entries
-                    .where((e) => e.key != 'Detect language')
-                    .map((entry) {
-                      return DropdownMenuItem<String>(
-                        value: entry.value,
-                        child: Text(entry.key),
-                      );
-                    })
-                    .toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _targetLanguageCode = newValue!;
-                  });
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Input/Output Boxes
-          Expanded(
-            child: Row(
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height - 32,
+            ),
+            child: Column(
               children: [
-                // Input Box (Left)
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.all(8.0),
-                    child: TextField(
-                      controller: _inputController,
-                      maxLines: null, // Allows multiline input
-                      expands: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter text',
-                        border: InputBorder.none,
-                      ),
+                // ===== CARD WITH LANGUAGE SELECTORS, DIVIDER, AND INPUT BOX =====
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Language Selectors (Top Row)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Source Language Dropdown
+                            DropdownButton<String>(
+                              value: _sourceLanguageCode,
+                              items: _languages.entries.map((entry) {
+                                return DropdownMenuItem<String>(
+                                  value: entry.value,
+                                  child: Text(entry.key),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _sourceLanguageCode = newValue!;
+                                });
+                              },
+                            ),
+
+                            const Icon(Icons.arrow_forward_ios),
+
+                            // Target Language Dropdown (English is default target)
+                            DropdownButton<String>(
+                              value: _targetLanguageCode,
+                              items: _languages.entries
+                                  .where((e) => e.key != 'Detect language')
+                                  .map((entry) {
+                                    return DropdownMenuItem<String>(
+                                      value: entry.value,
+                                      child: Text(entry.key),
+                                    );
+                                  })
+                                  .toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _targetLanguageCode = newValue!;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+
+                        // Divider
+                        const SizedBox(height: 12),
+                        Divider(color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+
+                        // Input Box with SingleChildScrollView
+                        SizedBox(
+                          height: 200,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                            ),
+                            padding: const EdgeInsets.all(8.0),
+                            child: SingleChildScrollView(
+                              child: TextField(
+                                controller: _inputController,
+                                maxLines: null,
+                                decoration: const InputDecoration(
+                                  hintText: 'Enter text',
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
 
-                // Output Box (Right)
-                Expanded(
+                const SizedBox(height: 16),
+
+                // ===== BUTTON ROW: PASTE, MICROPHONE, TRANSLATE =====
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  spacing: 8,
+                  children: [
+                    // Paste Button
+                    Flexible(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // TODO: Implement paste functionality
+                        },
+                        icon: const Icon(Icons.content_paste),
+                        label: const Text('Paste'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.black54,
+                        ),
+                      ),
+                    ),
+
+                    // Microphone Button (Icon only)
+                    IconButton(
+                      onPressed: () {
+                        // TODO: Implement microphone functionality
+                      },
+                      icon: const Icon(Icons.mic),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.grey.shade200,
+                        foregroundColor: Colors.black54,
+                      ),
+                    ),
+
+                    // Translation Button
+                    Flexible(
+                      child: ElevatedButton.icon(
+                        onPressed: _isTranslating || _inputController.text.isEmpty
+                            ? null
+                            : _translateText,
+                        icon: _isTranslating
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Icon(Icons.translate, size: 20),
+                        label: Text(
+                          _isTranslating ? 'Translating...' : getTargetName(),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // ===== OUTPUT BOX AT BOTTOM =====
+                SizedBox(
+                  height: 200,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50, // Light blue background
+                      color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
-                    padding: const EdgeInsets.all(10.0),
-                    alignment: Alignment.topLeft,
+                    padding: const EdgeInsets.all(12.0),
                     child: _isTranslating
                         ? const Center(child: CircularProgressIndicator())
-                        : SelectableText(
-                            _translatedText,
-                            style: TextStyle(
-                              color: Colors.blueGrey[800],
-                              fontSize: 16,
+                        : SingleChildScrollView(
+                            child: SelectableText(
+                              _translatedText,
+                              style: TextStyle(
+                                color: Colors.blueGrey[800],
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                   ),
@@ -303,56 +407,7 @@ class _TextTabContentState extends State<TextTabContent> {
               ],
             ),
           ),
-          const SizedBox(height: 10),
-
-          // Bottom Bar with Microphone and Translation Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Microphone/Input Info
-              Row(
-                children: [
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.mic)),
-                  const Text('0 / 5,000'),
-                ],
-              ),
-
-              // Translation Button (The missing piece!)
-              ElevatedButton.icon(
-                onPressed: _isTranslating || _inputController.text.isEmpty
-                    ? null
-                    : _translateText,
-                icon: _isTranslating
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : const Icon(Icons.translate, size: 20),
-                label: Text(
-                  getTargetName(),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
