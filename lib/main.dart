@@ -11,6 +11,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:flutter/services.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 // Import the service used for ChatGPT
 import 'services/chatgpt_service.dart';
@@ -165,6 +167,11 @@ class _TextTabContentState extends State<TextTabContent> {
   String _translatedText = 'Translation will appear here';
   bool _isTranslating = false;
 
+  // Speech to text variables
+  late stt.SpeechToText _speechToText;
+  bool _isListening = false;
+  String _recognizedText = '';
+
   final translator = GoogleTranslator();
 
   // Language map (used to determine source/target languages)
@@ -180,9 +187,87 @@ class _TextTabContentState extends State<TextTabContent> {
   String _targetLanguageCode = 'en';
 
   @override
+  void initState() {
+    super.initState();
+    _initSpeechToText();
+  }
+
+  Future<void> _initSpeechToText() async {
+    _speechToText = stt.SpeechToText();
+    bool available = await _speechToText.initialize(
+      onError: (error) {
+        print('Speech to text error: $error');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${error.errorMsg}')),
+        );
+      },
+      onStatus: (status) {
+        print('Speech to text status: $status');
+      },
+    );
+    if (!available) {
+      print('Speech to text not available');
+    }
+  }
+
+  @override
   void dispose() {
     _inputController.dispose();
+    if (_speechToText.isListening) {
+      _speechToText.stop();
+    }
     super.dispose();
+  }
+
+  void _startListening() async {
+    if (!_isListening && _speechToText.isAvailable) {
+      setState(() {
+        _isListening = true;
+        _recognizedText = '';
+      });
+
+      _speechToText.listen(
+        onResult: (result) {
+          setState(() {
+            _recognizedText = result.recognizedWords;
+            if (result.finalResult) {
+              _inputController.text += (_inputController.text.isEmpty ? '' : ' ') + _recognizedText;
+              _isListening = false;
+              _recognizedText = '';
+            }
+          });
+        },
+        localeId: _sourceLanguageCode == 'auto' ? 'en_US' : _sourceLanguageCode,
+      );
+    }
+  }
+
+  void _stopListening() async {
+    if (_isListening) {
+      _speechToText.stop();
+      setState(() {
+        _isListening = false;
+      });
+    }
+  }
+
+  void _pasteFromClipboard() async {
+    try {
+      final ClipboardData? data = await Clipboard.getData('text/plain');
+      if (data != null && data.text != null) {
+        setState(() {
+          _inputController.text = data.text!;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Text pasted successfully')),
+        );
+      }
+    } catch (e) {
+      print('Paste error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to paste text')),
+      );
+    }
   }
 
   Future<void> _translateText() async {
@@ -397,9 +482,7 @@ class _TextTabContentState extends State<TextTabContent> {
                   children: [
                     // Paste Button (Material 3 OutlinedButton)
                     OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement paste functionality
-                      },
+                      onPressed: _pasteFromClipboard,
                       icon: Icon(Icons.content_paste, size: 20, color: colorScheme.onSurfaceVariant),
                       label: Text(
                         'Paste',
@@ -430,9 +513,17 @@ class _TextTabContentState extends State<TextTabContent> {
                       ),
                       child: IconButton(
                         onPressed: () {
-                          // TODO: Implement microphone functionality
+                          if (_isListening) {
+                            _stopListening();
+                          } else {
+                            _startListening();
+                          }
                         },
-                        icon: Icon(Icons.mic, size: 24, color: colorScheme.primary),
+                        icon: Icon(
+                          _isListening ? Icons.mic_off : Icons.mic,
+                          size: 24,
+                          color: colorScheme.primary,
+                        ),
                         constraints: const BoxConstraints(
                           minWidth: 60,
                           minHeight: 60,
