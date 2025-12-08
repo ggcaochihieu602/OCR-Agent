@@ -243,51 +243,87 @@ class _TextTabContentState extends State<TextTabContent> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Source Language Dropdown
+                              // Source Language Dropdown (Modern Style)
                               Flexible(
-                                child: DropdownButton<String>(
-                                  value: _sourceLanguageCode,
-                                  isExpanded: true,
-                                  underline: const SizedBox(),
-                                  items: _languages.entries.map((entry) {
-                                    return DropdownMenuItem<String>(
-                                      value: entry.value,
-                                      child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w500)),
-                                    );
-                                  }).toList(),
-                                  onChanged: (String? newValue) {
-                                    setState(() {
-                                      _sourceLanguageCode = newValue!;
-                                    });
-                                  },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                                    child: DropdownButton<String>(
+                                      value: _sourceLanguageCode,
+                                      isExpanded: true,
+                                      underline: const SizedBox(),
+                                      icon: Icon(Icons.language, size: 20, color: Colors.blue.shade600),
+                                      items: _languages.entries.map((entry) {
+                                        return DropdownMenuItem<String>(
+                                          value: entry.value,
+                                          child: Text(
+                                            entry.key,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _sourceLanguageCode = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
 
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.blue.shade700),
+                                child: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.blue.shade400),
                               ),
 
-                              // Target Language Dropdown (English is default target)
+                              // Target Language Dropdown (Modern Style)
                               Flexible(
-                                child: DropdownButton<String>(
-                                  value: _targetLanguageCode,
-                                  isExpanded: true,
-                                  underline: const SizedBox(),
-                                  items: _languages.entries
-                                      .where((e) => e.key != 'Detect language')
-                                      .map((entry) {
-                                        return DropdownMenuItem<String>(
-                                          value: entry.value,
-                                          child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w500)),
-                                        );
-                                      })
-                                      .toList(),
-                                  onChanged: (String? newValue) {
-                                    setState(() {
-                                      _targetLanguageCode = newValue!;
-                                    });
-                                  },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                                    child: DropdownButton<String>(
+                                      value: _targetLanguageCode,
+                                      isExpanded: true,
+                                      underline: const SizedBox(),
+                                      icon: Icon(Icons.language, size: 20, color: Colors.blue.shade600),
+                                      items: _languages.entries
+                                          .where((e) => e.key != 'Detect language')
+                                          .map((entry) {
+                                            return DropdownMenuItem<String>(
+                                              value: entry.value,
+                                              child: Text(
+                                                entry.key,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            );
+                                          })
+                                          .toList(),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _targetLanguageCode = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
