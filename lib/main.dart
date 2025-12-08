@@ -460,66 +460,69 @@ class _TextTabContentState extends State<TextTabContent> {
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide.none,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Output Header (matching input card header height)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Output Header (matching input card header height)
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Translation Result',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              Icon(Icons.check_circle, size: 20, color: Colors.green.shade600),
+                            ],
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Translation Result',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: Colors.black87,
+
+                        // Divider (matching input card divider)
+                        Divider(color: Colors.grey.shade300, height: 1, thickness: 1),
+
+                        // Output Text Box (matching input box size)
+                        Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: SizedBox(
+                            height: 200,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.transparent),
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.white,
                               ),
-                            ),
-                            Icon(Icons.check_circle, size: 20, color: Colors.green.shade600),
-                          ],
-                        ),
-                      ),
-
-                      // Divider (matching input card divider)
-                      Divider(color: Colors.grey.shade300, height: 1, thickness: 1),
-
-                      // Output Text Box (matching input box size)
-                      Padding(
-                        padding: const EdgeInsets.all(14.0),
-                        child: SizedBox(
-                          height: 200,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.transparent),
-                              borderRadius: BorderRadius.circular(10),
-                              color: Colors.white,
-                            ),
-                            padding: const EdgeInsets.all(12.0),
-                            child: _isTranslating
-                                ? const Center(child: CircularProgressIndicator())
-                                : SingleChildScrollView(
-                                    child: SelectableText(
-                                      _translatedText,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                        height: 1.5,
+                              padding: const EdgeInsets.all(12.0),
+                              child: _isTranslating
+                                  ? const Center(child: CircularProgressIndicator())
+                                  : SingleChildScrollView(
+                                      child: SelectableText(
+                                        _translatedText,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black87,
+                                          height: 1.5,
+                                        ),
                                       ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
