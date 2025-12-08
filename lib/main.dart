@@ -219,80 +219,107 @@ class _TextTabContentState extends State<TextTabContent> {
               children: [
                 // ===== CARD WITH LANGUAGE SELECTORS, DIVIDER, AND INPUT BOX =====
                 Card(
-                  elevation: 2,
+                  elevation: 0,
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide.none,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Language Selectors (Top Row)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Source Language Dropdown
-                            DropdownButton<String>(
-                              value: _sourceLanguageCode,
-                              items: _languages.entries.map((entry) {
-                                return DropdownMenuItem<String>(
-                                  value: entry.value,
-                                  child: Text(entry.key),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _sourceLanguageCode = newValue!;
-                                });
-                              },
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
                             ),
-
-                            const Icon(Icons.arrow_forward_ios),
-
-                            // Target Language Dropdown (English is default target)
-                            DropdownButton<String>(
-                              value: _targetLanguageCode,
-                              items: _languages.entries
-                                  .where((e) => e.key != 'Detect language')
-                                  .map((entry) {
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Source Language Dropdown
+                              Flexible(
+                                child: DropdownButton<String>(
+                                  value: _sourceLanguageCode,
+                                  isExpanded: true,
+                                  underline: const SizedBox(),
+                                  items: _languages.entries.map((entry) {
                                     return DropdownMenuItem<String>(
                                       value: entry.value,
-                                      child: Text(entry.key),
+                                      child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w500)),
                                     );
-                                  })
-                                  .toList(),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _targetLanguageCode = newValue!;
-                                });
-                              },
-                            ),
-                          ],
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      _sourceLanguageCode = newValue!;
+                                    });
+                                  },
+                                ),
+                              ),
+
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                child: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.blue.shade700),
+                              ),
+
+                              // Target Language Dropdown (English is default target)
+                              Flexible(
+                                child: DropdownButton<String>(
+                                  value: _targetLanguageCode,
+                                  isExpanded: true,
+                                  underline: const SizedBox(),
+                                  items: _languages.entries
+                                      .where((e) => e.key != 'Detect language')
+                                      .map((entry) {
+                                        return DropdownMenuItem<String>(
+                                          value: entry.value,
+                                          child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w500)),
+                                        );
+                                      })
+                                      .toList(),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      _targetLanguageCode = newValue!;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
 
                         // Divider
-                        const SizedBox(height: 12),
-                        Divider(color: Colors.grey.shade300),
-                        const SizedBox(height: 12),
+                        Divider(color: Colors.grey.shade300, height: 1, thickness: 1),
 
                         // Input Box with SingleChildScrollView
-                        SizedBox(
-                          height: 200,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.white,
-                            ),
-                            padding: const EdgeInsets.all(8.0),
-                            child: SingleChildScrollView(
-                              child: TextField(
-                                controller: _inputController,
-                                maxLines: null,
-                                decoration: const InputDecoration(
-                                  hintText: 'Enter text',
-                                  border: InputBorder.none,
+                        Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: SizedBox(
+                            height: 200,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.transparent),
+                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.white,
+                              ),
+                              padding: const EdgeInsets.all(12.0),
+                              child: SingleChildScrollView(
+                                child: TextField(
+                                  controller: _inputController,
+                                  maxLines: null,
+                                  style: const TextStyle(fontSize: 16),
+                                  decoration: InputDecoration(
+                                    hintText: 'Nhập văn bản để dịch...',
+                                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
                                 ),
                               ),
                             ),
