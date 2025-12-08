@@ -409,11 +409,12 @@ class _TextTabContentState extends State<TextTabContent> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
+                        backgroundColor: colorScheme.surfaceContainerHighest,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 12,
                         ),
-                        side: BorderSide(color: colorScheme.outline, width: 1),
+                        side: BorderSide.none,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -423,15 +424,14 @@ class _TextTabContentState extends State<TextTabContent> {
                     // Microphone Button (Material 3 Style - Circular)
                     Container(
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
+                        color: colorScheme.primaryContainer,
                         shape: BoxShape.circle,
-                        border: Border.all(color: colorScheme.outline, width: 1),
                       ),
                       child: IconButton(
                         onPressed: () {
                           // TODO: Implement microphone functionality
                         },
-                        icon: Icon(Icons.mic, size: 24, color: colorScheme.onSurfaceVariant),
+                        icon: Icon(Icons.mic, size: 24, color: colorScheme.primary),
                         constraints: const BoxConstraints(
                           minWidth: 60,
                           minHeight: 60,
@@ -458,7 +458,7 @@ class _TextTabContentState extends State<TextTabContent> {
                             )
                           : Icon(Icons.translate, size: 20),
                       label: Text(
-                        _isTranslating ? 'Translating...' : getTargetName(),
+                        'Translate',
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                       ),
                       style: FilledButton.styleFrom(
